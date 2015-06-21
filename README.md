@@ -15,6 +15,14 @@ Ruby VM "MRI/CRuby" does not provide.
 
 ### Setup
 
+Clone and build `mruby` inside the vendor directory
+
+    cd vendor
+    git clone https://github.com/mruby/mruby.git
+    cd mruby
+    make
+    cd ../..
+
 Building `holycorn` is as simple as
 
     make
@@ -77,7 +85,7 @@ Now you can select data out of the wrapper:
 
 Pretty neat.
 
-# SUPPORTED TYPES (Ruby => PostgreSQL)
+# SUPPORTED TYPES (Ruby => PG)
 
 ## Builtin types
 
