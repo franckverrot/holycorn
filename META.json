@@ -1,0 +1,28 @@
+{
+   "name": "holycorn",
+   "abstract": "PostgreSQL Ruby Foreign Data Wrapper",
+   "description": "PostgreSQL Ruby Foreign Data Wrapper",
+   "version": "1.0.0",
+   "maintainer": [
+      "Franck Verrot <franck@verrot.fr>"
+   ],
+   "license": "mit",
+   "resources": {
+      "bugtracker": {
+         "web": "http://github.com/franckverrot/holycorn/issues/"
+      },
+      "repository": {
+        "url":  "git://github.com/franckverrot/holycorn.git",
+        "web":  "http://github.com/franckverrot/holycorn",
+        "type": "git"
+      }
+   },
+   "meta-spec": {
+      "version": "1.0.0",
+      "url": "http://pgxn.org/meta/spec.txt"
+   },
+   "tags": [
+      "git",
+      "fdw"
+   ]
+}
