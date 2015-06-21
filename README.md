@@ -122,10 +122,10 @@ TBD;
 
 ## TODO
 
--[ ] Array type
--[ ] JSON type
--[ ] Range type
--[ ] Support PG 9.5's `IMPORT FOREIGN SCHEMA` for easy setup
+- [ ] Array type
+- [ ] JSON type
+- [ ] Range type
+- [ ] Support PG 9.5's `IMPORT FOREIGN SCHEMA` for easy setup
 
 ## Note on Patches/Pull Requests
 
