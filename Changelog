@@ -1,14 +1,4 @@
-# Release 2.0.0
-
-## Breaking changes
-
-* User name and email are now two different fields
-
-## Updates
-
-* Add support for new columns and rework others
-* Add a foreign-table-level option for selecting the target branch
-
-# Release 1.0.0
+# Release 1.0.0 (unreleased)
 
 * Initial release
+* Ruby wrapper classes receives an environment `Hash` in their constructor

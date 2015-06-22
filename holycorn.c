@@ -11,6 +11,7 @@
 #include "mruby/compile.h"
 #include "mruby/string.h"
 #include "mruby/range.h"
+#include "mruby/hash.h"
 
 #include "access/htup_details.h"
 #include "access/reloptions.h"
@@ -230,11 +231,25 @@ static void rbBeginForeignScan(ForeignScanState *node, int eflags) {
   HolycornPlanState * hps = (HolycornPlanState*)plan->fdw_private;
 
   exec_state->mrb_state = mrb_open();
+
+
   FILE *source = fopen(hps->wrapper_path,"r");
   mrb_value class = mrb_load_file(exec_state->mrb_state, source);
   fclose(source);
 
-  exec_state->iterator = mrb_funcall(exec_state->mrb_state, class, "new", 0,NULL);
+  mrb_value params = mrb_hash_new(exec_state->mrb_state);
+
+#define HASH_SET(hash, key, val) \
+  mrb_hash_set(exec_state->mrb_state, hash, mrb_str_new_lit(exec_state->mrb_state, key), val);
+
+  HASH_SET(params, "PG_VERSION",         mrb_str_new_lit(exec_state->mrb_state, PG_VERSION));
+  HASH_SET(params, "PG_VERSION_NUM",     mrb_float_value(exec_state->mrb_state, PG_VERSION_NUM));
+  HASH_SET(params, "PACKAGE_STRING",     mrb_str_new_lit(exec_state->mrb_state, PACKAGE_STRING));
+  HASH_SET(params, "PACKAGE_VERSION",    mrb_str_new_lit(exec_state->mrb_state, PACKAGE_VERSION));
+  HASH_SET(params, "MRUBY_RUBY_VERSION", mrb_str_new_lit(exec_state->mrb_state, MRUBY_RUBY_VERSION));
+  HASH_SET(params, "WRAPPER_PATH",       mrb_str_new(exec_state->mrb_state, hps->wrapper_path, strlen(hps->wrapper_path)));
+
+  exec_state->iterator = mrb_funcall(exec_state->mrb_state, class, "new", 1, params);
 
   node->fdw_state = (void *) exec_state;
 }

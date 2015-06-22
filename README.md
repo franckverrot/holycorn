@@ -48,7 +48,7 @@ And the source file of the wrapper:
 
     # /tmp/source.rb
     class Producer
-      def initialize(env = {}) # optional parameter for future use
+      def initialize(env = {}) # env contains informations provided by Holycorn
       end
 
       def each
@@ -84,6 +84,35 @@ Now you can select data out of the wrapper:
     (10 rows)
 
 Pretty neat.
+
+# SUPPORTED SCRIPTS
+
+## General rules
+
+Any type of Ruby object can act as a FDW. The only requirements are that it can
+receive `.new` (with arity = 1) and return an object that can receive `each` (arity = 0).
+
+It doesn't **have** to be a `Class`, and there's currently no will to provide a
+superclass to be inherited from.
+
+In future versions, there will be many more callbacks to interact with PG's FDW
+infrastructure through `Holycorn`.
+
+Also, the script can only be a single word - like `MyClass` - as long as
+`MyClass` has been defined and exists within your compilation of `mruby`.
+
+
+## Environment
+
+A hash is passed by `Holycorn` to the Ruby script. Its current keys are:
+
+* `PG_VERSION`
+* `PG_VERSION_NUM`
+* `PACKAGE_STRING`
+* `PACKAGE_VERSION`
+* `MRUBY_RUBY_VERSION`
+* `WRAPPER_PATH`
+
 
 # SUPPORTED TYPES (Ruby => PG)
 
