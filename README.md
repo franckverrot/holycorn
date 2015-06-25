@@ -17,50 +17,56 @@ Ruby VM "MRI/CRuby" does not provide.
 
 Clone and build `mruby` inside the vendor directory
 
-    cd vendor
-    git clone https://github.com/mruby/mruby.git
-    cd mruby
-    make
-    cd ../..
+```console
+cd vendor
+git clone https://github.com/mruby/mruby.git
+cd mruby
+make
+cd ../..
+```
 
 Building `holycorn` is as simple as
 
-    make
+```console
+make
+```
 
 and installing it only requires oneself to
 
-    make install
+```console
+make install
+```
 
 Now you can start setting up the Foreign Data Wrapper:
 
-    λ psql
-    psql (9.4.1)
-    Type "help" for help.
-
-    DROP EXTENSION holycorn CASCADE;
-    CREATE EXTENSION holycorn;
-    CREATE SERVER holycorn_server FOREIGN DATA WRAPPER holycorn;
-    CREATE FOREIGN TABLE holytable (some_date timestampz) \
-      SERVER holycorn_server
-      OPTIONS (wrapper_path '/tmp/source.rb');
+```sql
+DROP EXTENSION holycorn CASCADE;
+CREATE EXTENSION holycorn;
+CREATE SERVER holycorn_server FOREIGN DATA WRAPPER holycorn;
+CREATE FOREIGN TABLE holytable (some_date timestampz) \
+  SERVER holycorn_server
+  OPTIONS (wrapper_path '/tmp/source.rb');
+```
 
 And the source file of the wrapper:
 
-    # /tmp/source.rb
-    class Producer
-      def initialize(env = {}) # env contains informations provided by Holycorn
-      end
+```ruby
+# /tmp/source.rb
+class Producer
+  def initialize(env = {}) # env contains informations provided by Holycorn
+  end
 
-      def each
-        @enum ||= Enumerator.new do |y|
-          10.times do |t|
-            y.yield [ Time.now ]
-          end
-        end
-        @enum.next
+  def each
+    @enum ||= Enumerator.new do |y|
+      10.times do |t|
+        y.yield [ Time.now ]
       end
-      self
     end
+    @enum.next
+  end
+  self
+end
+```
 
 Now you can select data out of the wrapper:
 
