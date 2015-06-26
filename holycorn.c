@@ -298,8 +298,10 @@ static TupleTableSlot * rbIterateForeignScan(ForeignScanState *node) {
             slot->tts_isnull[i] = true;
             break;
           case MRB_TT_FALSE: //TODO: use BoolGetDatum
-            slot->tts_isnull[i] = true;
-            slot->tts_values[i] = BoolGetDatum(false);
+            if (!mrb_nil_p(column)) {
+                slot->tts_isnull[i] = true;
+                slot->tts_values[i] = BoolGetDatum(false);
+            }
             break;
           case MRB_TT_TRUE:
             slot->tts_isnull[i] = false;
