@@ -2,15 +2,19 @@ require 'fileutils'
 
 MRubyRCompilationFailed = Class.new(RuntimeError)
 
-desc "Build mruby in a vendor directory"
+desc "Vendor mruby in a vendor directory"
 task :vendor_mruby do
   FileUtils.mkdir_p('vendor')
   chdir('vendor') do
     sh "git clone git@github.com:mruby/mruby.git"
-    chdir('mruby') do
-      FileUtils.cp('../../config/build_config.rb', '.')
-      sh "make"
-    end
+  end
+end
+
+desc "Build mruby"
+task :build_mruby do
+  chdir('vendor/mruby') do
+    FileUtils.cp('../../config/build_config.rb', '.')
+    sh "make"
   end
 end
 
@@ -19,4 +23,4 @@ task :clean do
   FileUtils.rm_rf('vendor')
 end
 
-task :default => [:clean, :vendor_mruby]
+task :default => [:clean, :vendor_mruby, :build_mruby]
