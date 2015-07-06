@@ -15,27 +15,19 @@ Ruby VM "MRI/CRuby" does not provide.
 
 ### Setup
 
-Clone and build `mruby` inside the vendor directory
+Simply run
 
-```console
-cd vendor
-git clone https://github.com/mruby/mruby.git
-cd mruby
-make
-cd ../..
-```
+    rake
 
-Building `holycorn` is as simple as
+to vendor and build `mruby`.
 
-```console
-make
-```
+Now that `mruby` is built, building `holycorn` requires to run
 
-and installing it only requires oneself to
+    make
 
-```console
-make install
-```
+and installing it only requires to run
+
+    make install
 
 Now you can start setting up the Foreign Data Wrapper:
 
