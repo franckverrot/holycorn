@@ -7,6 +7,15 @@ Holycorn makes it easy to implement a Foreign Data Wrapper using Ruby.
 It is based on top of mruby, that provides sandboxing capabilities the regular
 Ruby VM "MRI/CRuby" does not provide.
 
+## Built-in Wrappers
+
+Holycorn embeds its own gems at compile-time, as this is the way to work with
+gems with mruby.
+
+All the following wrappers are currently linked against Holycorn:
+
+  * `Redis`, using the `mruby-redis` gem
+
 ## INSTALLATION
 
 ### Prerequisites
@@ -29,7 +38,61 @@ and installing it only requires to run
 
     make install
 
-Now you can start setting up the Foreign Data Wrapper:
+Now connect to PostgreSQL and install the extension:
+
+    λ psql
+    psql (9.4.1)
+    Type "help" for help.
+
+    DROP EXTENSION holycorn CASCADE;
+    CREATE EXTENSION holycorn;
+
+#### Using Builtin Foreign Data Wrappers
+
+A set of builtin FDW are distributed with Holycorn for an easy setup. All one
+needs to provide are the options that will allow the FDW to be configured:
+
+    λ psql
+    psql (9.4.1)
+    Type "help" for help.
+
+    CREATE SERVER holycorn_server FOREIGN DATA WRAPPER holycorn;
+    CREATE FOREIGN TABLE redis_table (queue text) \
+      SERVER holycorn_server
+      OPTIONS (wrapper = "HolycornRedis", host = "127.0.0.1", port = "6379");
+
+Now that the table has been created, you can select data out of the table:
+
+
+```sql
+SELECT key from redis_table;
+
+           key
+---------------------------
+ stat:failed:03/06/2015
+ stat:processed:15/06/2015
+ stat:failed:22/04/2015
+ stat:processed:02/06/2015
+ stat:processed:26/06/2015
+ stat:processed:02/06/2015
+ stat:processed:10/04/2015
+ stat:processed:08/06/2015
+ stat:failed:09/04/2015
+ stat:failed:23/04/2015
+ stat:processed:10/04/2015
+ stat:processed:26/06/2015
+ stat:processed:26/06/2015
+ stat:processed:01/06/2015
+ stat:processed:08/06/2015
+ stat:processed:10/04/2015
+ stat:failed
+ stat:failed:02/06/2015
+ stat:failed:22/04/2015
+```
+
+#### Using custom scripts
+
+Alternatively, custom scripts can be used as the source for a Foreign Data Wrapper:
 
 ```sql
 DROP EXTENSION holycorn CASCADE;

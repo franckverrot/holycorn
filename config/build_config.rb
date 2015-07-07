@@ -14,6 +14,7 @@ MRuby::Build.new do |conf|
   conf.gem :git => 'https://github.com/matsumoto-r/mruby-httprequest.git'
   conf.gem :git => 'https://github.com/mattn/mruby-json.git'
   conf.gem :git => 'https://github.com/iij/mruby-io.git'
+  conf.gem :git => 'https://github.com/matsumoto-r/mruby-redis.git'
 
   # Include the default GEMs
   conf.gembox 'default'
