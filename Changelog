@@ -1,4 +1,9 @@
-# Release 1.0.0 (unreleased)
+# Release 1.1.0 (unreleased)
+
+* Support builtin FDW for easy configuration
+* Start implementing Redis's FDW
+
+# Release 1.0.0
 
 * Initial release
 * Ruby wrapper classes receives an environment `Hash` in their constructor

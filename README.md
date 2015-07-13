@@ -7,6 +7,15 @@ Holycorn makes it easy to implement a Foreign Data Wrapper using Ruby.
 It is based on top of mruby, that provides sandboxing capabilities the regular
 Ruby VM "MRI/CRuby" does not provide.
 
+## Built-in Wrappers
+
+Holycorn embeds its own gems at compile-time, as this is the way to work with
+gems with mruby.
+
+All the following wrappers are currently linked against Holycorn:
+
+  * `Redis`, using the `mruby-redis` gem
+
 ## INSTALLATION
 
 ### Prerequisites
@@ -29,7 +38,66 @@ and installing it only requires to run
 
     make install
 
-Now you can start setting up the Foreign Data Wrapper:
+Now connect to PostgreSQL and install the extension:
+
+    λ psql
+    psql (9.4.1)
+    Type "help" for help.
+
+    DROP EXTENSION holycorn CASCADE;
+    CREATE EXTENSION holycorn;
+
+#### Using Builtin Foreign Data Wrappers
+
+A set of builtin FDW are distributed with Holycorn for an easy setup. All one
+needs to provide are the options that will allow the FDW to be configured:
+
+    λ psql
+    psql (9.4.1)
+    Type "help" for help.
+
+    CREATE SERVER holycorn_server FOREIGN DATA WRAPPER holycorn;
+    CREATE FOREIGN TABLE redis_table (key text, value text)
+      SERVER holycorn_server
+      OPTIONS (wrapper_class 'HolycornRedis', host '127.0.0.1', port '6379', db '0');
+
+As `Holycorn` doesn't support `INSERT`s yet, let's create some manually:
+
+```console
+λ redis-cli
+127.0.0.1:6379> select 0
+OK
+127.0.0.1:6379> keys *
+(empty list or set)
+127.0.0.1:6379> set foo 1
+OK
+127.0.0.1:6379> set bar 2
+OK
+127.0.0.1:6379> set baz 3
+OK
+127.0.0.1:6379> keys *
+1) "bar"
+2) "foo"
+3) "baz"
+```
+
+Now that the table has been created and we have some data in Redis, we can
+select data from the foreign table.
+
+```sql
+SELECT * from redis_table;
+
+ key | value
+-----+-------
+ bar | 2
+ foo | 1
+ baz | 3
+(3 rows)
+```
+
+#### Using custom scripts
+
+Alternatively, custom scripts can be used as the source for a Foreign Data Wrapper:
 
 ```sql
 DROP EXTENSION holycorn CASCADE;
@@ -149,11 +217,19 @@ A hash is passed by `Holycorn` to the Ruby script. Its current keys are:
 
 ### Server
 
-TBD;
+None (yet).
 
 ### Foreign Table
 
-TBD;
+Either `wrapper_class` or `wrapper_path` can be used to defined whether an
+external script or a built-in wrapper will manage the foreign table.
+
+* `wrapper_class`: Name of the built-in wrapper class
+* `wrapper_path`: Path of a custom script
+
+In both case, any other option will be pushed down to the wrapper class via the
+constructor.
+
 
 ## TODO
 
