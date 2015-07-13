@@ -5,6 +5,7 @@ struct HolycornOption {
 
 // Only allow setting the repository's path
 static const struct HolycornOption valid_options[] = {
-  {"wrapper_path", ForeignTableRelationId, false},
+  {"wrapper_path",  ForeignTableRelationId, false},
+  {"wrapper_class", ForeignTableRelationId, false},
   {NULL,     InvalidOid, false}
 };

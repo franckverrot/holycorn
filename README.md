@@ -57,37 +57,42 @@ needs to provide are the options that will allow the FDW to be configured:
     Type "help" for help.
 
     CREATE SERVER holycorn_server FOREIGN DATA WRAPPER holycorn;
-    CREATE FOREIGN TABLE redis_table (queue text) \
+    CREATE FOREIGN TABLE redis_table (key text, value text)
       SERVER holycorn_server
-      OPTIONS (wrapper = "HolycornRedis", host = "127.0.0.1", port = "6379");
+      OPTIONS (wrapper_class 'HolycornRedis', host '127.0.0.1', port '6379', db '0');
 
-Now that the table has been created, you can select data out of the table:
+As `Holycorn` doesn't support `INSERT`s yet, let's create some manually:
 
+```console
+λ redis-cli
+127.0.0.1:6379> select 0
+OK
+127.0.0.1:6379> keys *
+(empty list or set)
+127.0.0.1:6379> set foo 1
+OK
+127.0.0.1:6379> set bar 2
+OK
+127.0.0.1:6379> set baz 3
+OK
+127.0.0.1:6379> keys *
+1) "bar"
+2) "foo"
+3) "baz"
+```
+
+Now that the table has been created and we have some data in Redis, we can
+select data from the foreign table.
 
 ```sql
-SELECT key from redis_table;
+SELECT * from redis_table;
 
-           key
----------------------------
- stat:failed:03/06/2015
- stat:processed:15/06/2015
- stat:failed:22/04/2015
- stat:processed:02/06/2015
- stat:processed:26/06/2015
- stat:processed:02/06/2015
- stat:processed:10/04/2015
- stat:processed:08/06/2015
- stat:failed:09/04/2015
- stat:failed:23/04/2015
- stat:processed:10/04/2015
- stat:processed:26/06/2015
- stat:processed:26/06/2015
- stat:processed:01/06/2015
- stat:processed:08/06/2015
- stat:processed:10/04/2015
- stat:failed
- stat:failed:02/06/2015
- stat:failed:22/04/2015
+ key | value
+-----+-------
+ bar | 2
+ foo | 1
+ baz | 3
+(3 rows)
 ```
 
 #### Using custom scripts
@@ -212,11 +217,19 @@ A hash is passed by `Holycorn` to the Ruby script. Its current keys are:
 
 ### Server
 
-TBD;
+None (yet).
 
 ### Foreign Table
 
-TBD;
+Either `wrapper_class` or `wrapper_path` can be used to defined whether an
+external script or a built-in wrapper will manage the foreign table.
+
+* `wrapper_class`: Name of the built-in wrapper class
+* `wrapper_path`: Path of a custom script
+
+In both case, any other option will be pushed down to the wrapper class via the
+constructor.
+
 
 ## TODO
 

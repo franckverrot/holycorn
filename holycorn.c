@@ -56,7 +56,6 @@ static TupleTableSlot *rbIterateForeignScan(ForeignScanState *node);
 static void fileReScanForeignScan(ForeignScanState *node);
 static void rbEndForeignScan(ForeignScanState *node);
 
-static bool is_valid_option(const char *option, Oid context);
 static void rbGetOptions(Oid foreigntableid, HolycornPlanState *state, List **other_options);
 static void estimate_costs(PlannerInfo *root, RelOptInfo *baserel,
     HolycornPlanState *fdw_private,
@@ -86,64 +85,40 @@ Datum holycorn_validator(PG_FUNCTION_ARGS) {
   Oid      catalog = PG_GETARG_OID(1);
   List     *other_options = NIL;
   ListCell   *cell;
-  char * wrapper_path;
+
+  /*
+   * These strings won't be used but they will hold temporary values extracted
+   * from the foreign table definition
+   */
+  char * wrapper_path = NULL;
+  char * wrapper_class = NULL;
 
   foreach(cell, options_list) {
     DefElem    *def = (DefElem *) lfirst(cell);
 
-    if (!is_valid_option(def->defname, catalog))
-    {
-      const struct HolycornOption *opt;
-      StringInfoData buf;
-
-      /*
-       * Unknown option specified, complain about it. Provide a hint
-       * with list of valid options for the object.
-       */
-      initStringInfo(&buf);
-      for (opt = valid_options; opt->optname; opt++)
-      {
-        if (catalog == opt->optcontext)
-          appendStringInfo(&buf, "%s%s", (buf.len > 0) ? ", " : "",
-              opt->optname);
-      }
-
-      ereport(LOG,
-          (errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
-           errmsg("invalid option \"%s\"", def->defname),
-           buf.len > 0
-           ? errhint("Valid options in this context are: %s",
-             buf.data)
-           : errhint("There are no valid options in this context.")));
-    }
-
-    if (strcmp(def->defname, "wrapper_path") == 0)
-    {
+    if (strcmp(def->defname, "wrapper_path") == 0) {
       if (wrapper_path)
         ereport(DEBUG1,
             (errcode(ERRCODE_SYNTAX_ERROR),
              errmsg("conflicting or redundant options")));
       wrapper_path = defGetString(def);
     }
-    else
+    else if (strcmp(def->defname, "wrapper_class") == 0) {
+      if (wrapper_class)
+        ereport(DEBUG1,
+            (errcode(ERRCODE_SYNTAX_ERROR),
+             errmsg("conflicting or redundant options")));
+      wrapper_class = defGetString(def);
+    } else {
       other_options = lappend(other_options, def);
+    }
   }
 
-  if (catalog == ForeignTableRelationId && wrapper_path == NULL) {
-    elog(ERROR, "wrapper_path is required for holycorn foreign tables (path of the .rb source file)");
+  if (catalog == ForeignTableRelationId && (wrapper_path != NULL) && (wrapper_class != NULL)) {
+    elog(ERROR, "[holycorn validator] wrapper_path or wrapper_class are required (and not both) for defining a holycorn foreign table");
   }
 
   PG_RETURN_VOID();
-}
-
-static bool is_valid_option(const char *option, Oid context) {
-  const struct HolycornOption *opt;
-
-  for (opt = valid_options; opt->optname; opt++) {
-    if (context == opt->optcontext && strcmp(opt->optname, option) == 0)
-      return true;
-  }
-  return false;
 }
 
 static void rbGetOptions(Oid foreigntableid, HolycornPlanState *state, List **other_options) {
@@ -158,19 +133,27 @@ static void rbGetOptions(Oid foreigntableid, HolycornPlanState *state, List **ot
   options = list_concat(options, table->options);
 
   prev = NULL;
+
+  /* Set default values */
+  state->wrapper_path  = NULL;
+  state->wrapper_class = NULL;
+
   foreach(lc, options) {
     DefElem *def = (DefElem *) lfirst(lc);
 
-    if (strcmp(def->defname, "wrapper_path") == 0) {
+    if (strcmp(def->defname, "wrapper_path") == 0) { /* Extract the wrapper_path */
       state->wrapper_path = defGetString(def);
+      options = list_delete_cell(options, lc, prev);
+    } else if (strcmp(def->defname, "wrapper_class") == 0) { /* Extract the wrapper_class */
+      state->wrapper_class = defGetString(def);
       options = list_delete_cell(options, lc, prev);
     }
 
     prev = lc;
   }
 
-  if (state->wrapper_path == NULL) {
-    elog(ERROR, "wrapper_path is required for holycorn foreign tables (path of the .rb source file)");
+  if (state->wrapper_path != NULL && state->wrapper_class != NULL) {
+    elog(ERROR, "[holycorn rbGetOptions] wrapper_path or wrapper_class are required (and not both) for defining a holycorn foreign table");
   }
 
   *other_options = options;
@@ -215,8 +198,6 @@ static ForeignScan * rbGetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oi
   best_path->fdw_private = baserel->fdw_private;
   ForeignScan * scan = make_foreignscan(tlist, scan_clauses, scan_relid, NIL, best_path->fdw_private);
 
-  char * wrapper_path = ((HolycornPlanState*)scan->fdw_private)->wrapper_path;
-  elog(LOG,"(GetForeignPlan) wrapper path is %s", wrapper_path);
   return scan;
 }
 
@@ -232,10 +213,15 @@ static void rbBeginForeignScan(ForeignScanState *node, int eflags) {
 
   exec_state->mrb_state = mrb_open();
 
+  mrb_value class;
 
-  FILE *source = fopen(hps->wrapper_path,"r");
-  mrb_value class = mrb_load_file(exec_state->mrb_state, source);
-  fclose(source);
+  if(hps->wrapper_path) {
+    FILE *source = fopen(hps->wrapper_path,"r");
+    class = mrb_load_file(exec_state->mrb_state, source);
+    fclose(source);
+  } else {
+    class = mrb_obj_value(mrb_class_get(exec_state->mrb_state, hps->wrapper_class));
+  }
 
   mrb_value params = mrb_hash_new(exec_state->mrb_state);
 
@@ -247,9 +233,30 @@ static void rbBeginForeignScan(ForeignScanState *node, int eflags) {
   HASH_SET(params, "PACKAGE_STRING",     mrb_str_new_lit(exec_state->mrb_state, PACKAGE_STRING));
   HASH_SET(params, "PACKAGE_VERSION",    mrb_str_new_lit(exec_state->mrb_state, PACKAGE_VERSION));
   HASH_SET(params, "MRUBY_RUBY_VERSION", mrb_str_new_lit(exec_state->mrb_state, MRUBY_RUBY_VERSION));
-  HASH_SET(params, "WRAPPER_PATH",       mrb_str_new(exec_state->mrb_state, hps->wrapper_path, strlen(hps->wrapper_path)));
+
+  ListCell   *cell;
+  foreach(cell, hps->options) {
+    DefElem    *def = (DefElem *) lfirst(cell);
+
+    char * key = def->defname;
+    char * val = defGetString(def);
+
+    mrb_hash_set( \
+        exec_state->mrb_state, \
+        params, \
+        mrb_str_new(exec_state->mrb_state, key, strlen(key)), \
+        mrb_str_new(exec_state->mrb_state, val, strlen(val)));
+  }
 
   exec_state->iterator = mrb_funcall(exec_state->mrb_state, class, "new", 1, params);
+
+  if (mrb_exception_p(exec_state->iterator)) {
+    mrb_value message = mrb_funcall(exec_state->mrb_state, exec_state->iterator, "inspect", NULL);
+    elog(ERROR,
+        "[holycorn] Instantiating %s raised an exception:\n%s\n",
+        hps->wrapper_class,
+        RSTRING_PTR(message));
+  }
 
   node->fdw_state = (void *) exec_state;
 }
@@ -405,7 +412,6 @@ static TupleTableSlot * rbIterateForeignScan(ForeignScanState *node) {
 }
 
 static void fileReScanForeignScan(ForeignScanState *node) {
-  elog(LOG,"Rescanning...\n");
 }
 
 static void rbEndForeignScan(ForeignScanState *node) {
