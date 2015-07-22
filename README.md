@@ -7,6 +7,7 @@ Holycorn makes it easy to implement a Foreign Data Wrapper using Ruby.
 It is based on top of mruby, that provides sandboxing capabilities the regular
 Ruby VM "MRI/CRuby" does not provide.
 
+[![Join the chat at https://gitter.im/franckverrot/holycorn](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/franckverrot/holycorn?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 ## Built-in Wrappers
 
 Holycorn embeds its own gems at compile-time, as this is the way to work with
