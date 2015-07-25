@@ -6,7 +6,7 @@ desc "Vendor mruby in a vendor directory"
 task :vendor_mruby do
   FileUtils.mkdir_p('vendor')
   chdir('vendor') do
-    sh "git clone git@github.com:mruby/mruby.git"
+    sh "git clone --depth=1 git@github.com:mruby/mruby.git"
   end
 end
 
