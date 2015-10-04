@@ -6,7 +6,7 @@
    "maintainer": [
       "Franck Verrot <franck@verrot.fr>"
    ],
-   "license": "mit",
+   "license": "LGPLv3",
    "resources": {
       "bugtracker": {
          "web": "http://github.com/franckverrot/holycorn/issues/"

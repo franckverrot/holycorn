@@ -249,4 +249,10 @@ constructor.
 
 ## LICENSE
 
-Copyright (c) 2015 Franck Verrot. MIT LICENSE. See LICENSE.md for details.
+Please see [LICENSE][license] for licensing details.
+
+## AUTHOR
+
+Franck Verrot, @franckverrot
+
+[license]: https://github.com/franckverrot/holycorn/blob/master/LICENSE.md
