@@ -104,7 +104,7 @@ Alternatively, custom scripts can be used as the source for a Foreign Data Wrapp
 DROP EXTENSION holycorn CASCADE;
 CREATE EXTENSION holycorn;
 CREATE SERVER holycorn_server FOREIGN DATA WRAPPER holycorn;
-CREATE FOREIGN TABLE holytable (some_date timestampz) \
+CREATE FOREIGN TABLE holytable (some_date timestamptz) \
   SERVER holycorn_server
   OPTIONS (wrapper_path '/tmp/source.rb');
 ```
