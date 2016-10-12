@@ -1,4 +1,4 @@
-# Holycorn: PostgreSQL multi-purpose Ruby data wrapper
+# Holycorn: PostgreSQL multi-purpose Ruby data wrapper [![Travis](https://secure.travis-ci.org/franckverrot/holycorn.png)](http://travis-ci.org/franckverrot/holycorn)
 
 (m)Ruby + PostgreSQL = &lt;3
 
