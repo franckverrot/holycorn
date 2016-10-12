@@ -1,0 +1,4 @@
+flushall
+set foo 1
+set bar 2
+set baz 3

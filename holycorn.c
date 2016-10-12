@@ -170,7 +170,6 @@ static void rbGetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreig
   HolycornPlanState *fdw_private = (HolycornPlanState *) baserel->fdw_private;
   Cost    startup_cost;
   Cost    total_cost;
-  List     *coptions = NIL;
 
   /* Estimate costs */
   estimate_costs(root, baserel, fdw_private, &startup_cost, &total_cost);
@@ -181,12 +180,11 @@ static void rbGetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreig
    * it will be propagated into the fdw_private list of the Plan node.
    */
   Path * path = (Path*)create_foreignscan_path(root, baserel,
-      baserel->rows,
-      startup_cost,
-      total_cost,
-      NIL,    /* no pathkeys */
-      NULL,    /* no outer rel either */
-      coptions);
+      baserel->rows, startup_cost, total_cost,
+      NULL,    /* no pathkeys */
+      NIL,   /* no outer rel either */
+      NULL,
+      NULL);
 
   add_path(baserel, path);
 }
@@ -196,7 +194,7 @@ static ForeignScan * rbGetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oi
   scan_clauses = extract_actual_clauses(scan_clauses, false);
 
   best_path->fdw_private = baserel->fdw_private;
-  ForeignScan * scan = make_foreignscan(tlist, scan_clauses, scan_relid, NIL, best_path->fdw_private);
+  ForeignScan * scan = make_foreignscan(tlist, scan_clauses, scan_relid, NIL, best_path->fdw_private, NULL, NULL, NULL);
 
   return scan;
 }
@@ -252,10 +250,12 @@ static void rbBeginForeignScan(ForeignScanState *node, int eflags) {
 
   if (mrb_exception_p(exec_state->iterator)) {
     mrb_value message = mrb_funcall(exec_state->mrb_state, exec_state->iterator, "inspect", NULL);
+    mrb_value pretty_params = mrb_funcall(exec_state->mrb_state, params, "inspect", NULL);
     elog(ERROR,
-        "[holycorn] Instantiating %s raised an exception:\n%s\n",
+        "[holycorn] Instantiating %s raised an exception:\n%s\n (params: %s)\n",
         hps->wrapper_class,
-        RSTRING_PTR(message));
+        RSTRING_PTR(message),
+        RSTRING_PTR(pretty_params));
   }
 
   node->fdw_state = (void *) exec_state;

@@ -10,7 +10,7 @@ class HolycornRedis
 
     @r = Redis.new host, port.to_i
     @r.select db.to_i
-    @values = @r.keys('*').to_enum
+    @values = (@r.keys('*') || []).to_enum
   end
 
   def each
