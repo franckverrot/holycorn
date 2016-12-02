@@ -1,5 +1,7 @@
 # Holycorn: PostgreSQL multi-purpose Ruby data wrapper [![Travis](https://secure.travis-ci.org/franckverrot/holycorn.png)](http://travis-ci.org/franckverrot/holycorn)
 
+[![Join the chat at https://gitter.im/franckverrot/holycorn](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/franckverrot/holycorn?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 (m)Ruby + PostgreSQL = &lt;3
 
 Holycorn makes it easy to implement a Foreign Data Wrapper using Ruby.
