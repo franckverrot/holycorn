@@ -5,13 +5,14 @@
 Holycorn makes it easy to implement a Foreign Data Wrapper using Ruby.
 
 It is based on top of mruby, that provides sandboxing capabilities the regular
-Ruby VM "MRI/CRuby" does not provide.
+Ruby VM "MRI/CRuby" does not implement.
 
 [![Join the chat at https://gitter.im/franckverrot/holycorn](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/franckverrot/holycorn?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 ## Built-in Wrappers
 
-Holycorn embeds its own gems at compile-time, as this is the way to work with
-gems with mruby.
+Holycorn is the combination of the mruby VM, some supporting gems (some basic
+libraries and some more advanced ones), and custom code that implement the actual
+foreign data wrappers.
 
 All the following wrappers are currently linked against Holycorn:
 
@@ -104,7 +105,7 @@ Alternatively, custom scripts can be used as the source for a Foreign Data Wrapp
 DROP EXTENSION holycorn CASCADE;
 CREATE EXTENSION holycorn;
 CREATE SERVER holycorn_server FOREIGN DATA WRAPPER holycorn;
-CREATE FOREIGN TABLE holytable (some_date timestampz) \
+CREATE FOREIGN TABLE holytable (some_date timestamptz) \
   SERVER holycorn_server
   OPTIONS (wrapper_path '/tmp/source.rb');
 ```
@@ -212,7 +213,7 @@ A hash is passed by `Holycorn` to the Ruby script. Its current keys are:
 
 ## Arbitraty Ruby objects
 
-  * Time (Ruby) => `timestampz`
+  * Time (Ruby) => `timestamptz`
 
 ## CONFIGURATION
 
@@ -249,7 +250,7 @@ constructor.
 
 ## LICENSE
 
-Copyright (c) 2015-2016 Franck Verrot
+Copyright (c) 2015-2017 Franck Verrot
 
 Holycorn is an Open Source project licensed under the terms of the LGPLv3
 license.  Please see <http://www.gnu.org/licenses/lgpl-3.0.html> for license
