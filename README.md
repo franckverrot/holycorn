@@ -250,7 +250,7 @@ constructor.
 
 ## LICENSE
 
-Copyright (c) 2015-2017 Franck Verrot
+Copyright (c) 2015-2018 Franck Verrot
 
 Holycorn is an Open Source project licensed under the terms of the LGPLv3
 license.  Please see <http://www.gnu.org/licenses/lgpl-3.0.html> for license
