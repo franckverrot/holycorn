@@ -285,7 +285,7 @@ static TupleTableSlot * rbIterateForeignScan(ForeignScanState *node) {
     elog(LOG, "#each must provide an array (was %s)", RSTRING_PTR(output));
     return NULL;
   } else {
-    slot->tts_nvalid = mrb_ary_len(exec_state->mrb_state, output);
+    slot->tts_nvalid = RARRAY_LEN(output);
 
     slot->tts_isempty = false;
     slot->tts_isnull = (bool *)palloc(sizeof(bool) * slot->tts_nvalid);
