@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM ubuntu:xenial
 MAINTAINER Franck Verrot <franck@verrot.fr>
 
 RUN apt-get update -qq && \
@@ -9,12 +9,13 @@ RUN apt-get update -qq && \
       libc6-dev-i386 \
       libpq-dev \
       postgresql-9.5 \
-      postgresql-server-dev-all \
+      postgresql-server-dev-9.5 \
       rake \
       redis-server
 
-ADD . /holycorn
-WORKDIR /holycorn
-
 RUN pg_createcluster -p 5433 9.5 my_cluster
+
+WORKDIR /holycorn
+ADD . /holycorn
+
 RUN rake build && make install

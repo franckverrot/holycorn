@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+docker run franckverrot/holycorn tests/run.sh $PG_VERSION
