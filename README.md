@@ -22,7 +22,7 @@ All the following wrappers are currently linked against Holycorn:
 
 ### Prerequisites
 
-* PostgreSQL 9.1+
+* PostgreSQL 9.4+
 
 ### Setup
 
