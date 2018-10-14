@@ -1,7 +1,15 @@
-# Release 1.1.0 (unreleased)
+# Release 1.2.0 (unreleased)
+
+* TBD
+
+
+# Release 1.1.0
 
 * Support builtin FDW for easy configuration
 * Start implementing Redis's FDW
+* Dropped support for PG 9.1, 9.2 and 9.3
+* Added test infrastructure
+
 
 # Release 1.0.0
 
