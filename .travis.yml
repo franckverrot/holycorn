@@ -2,11 +2,27 @@ sudo: required
 
 language: ruby
 
+addons:
+  apt:
+    packages:
+    - pgxnclient
+    - ruby-dev
+
 services:
-    - docker
+  - docker
 
-before_install:
-    - docker build -t franckverrot/holycorn .
+stages:
+  - name: Test
 
-script:
-    - docker run franckverrot/holycorn tests/run.sh
+env:
+  matrix:
+    - PG_VERSION=9.4
+    - PG_VERSION=9.5
+    - PG_VERSION=9.6
+    - PG_VERSION=10
+    - PG_VERSION=11
+    - PG_VERSION=12
+
+matrix:
+  allow_failures:
+    - env: PG_VERSION=12

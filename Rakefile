@@ -23,4 +23,9 @@ task :clean do
   FileUtils.rm_rf('vendor')
 end
 
-task :default => [:clean, :vendor_mruby, :build_mruby]
+task :build => [:clean, :vendor_mruby, :build_mruby]
+
+task :default do
+  system("./scripts/build_image && ./scripts/run_tests")
+  exit $?.exitstatus
+end

@@ -2,18 +2,18 @@
 source $(dirname $0)/helpers.sh
 
 # Create and start services
-pg_ctlcluster 9.5 my_cluster start
+pg_ctlcluster $1 my_cluster start
 redis-server --daemonize yes
 
 # Setup Redis
-redis-cli < tests/fixtures/redis.commands
+redis-cli < tests/redis.commands
 
 # Setup Postgres
 exec_psql /holycorn/tests/setup.sql
 exec_psql /holycorn/tests/run.sql
 
 # Execute tests
-expected_output=$(cat tests/fixtures/expected_output)
+expected_output=$(cat tests/expected_outputs/$1)
 actual_output=$(su -c "$PSQL -txqAF, -R\; < /holycorn/tests/run.sql" - postgres)
 
 # Assert results

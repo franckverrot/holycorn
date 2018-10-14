@@ -49,7 +49,11 @@ PG_FUNCTION_INFO_V1(holycorn_validator);
 static void rbGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid);
 static void rbGetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid);
 static ForeignScan *rbGetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
-    ForeignPath *best_path, List *tlist, List *scan_clauses);
+    ForeignPath *best_path, List *tlist, List *scan_clauses
+#if (PG_VERSION_NUM >= 90500)
+		, Plan *outer_plan
+#endif
+		);
 static void rbBeginForeignScan(ForeignScanState *node, int eflags);
 static void rbExplainForeignScan(ForeignScanState *node, ExplainState *es);
 static TupleTableSlot *rbIterateForeignScan(ForeignScanState *node);
@@ -170,6 +174,7 @@ static void rbGetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreig
   HolycornPlanState *fdw_private = (HolycornPlanState *) baserel->fdw_private;
   Cost    startup_cost;
   Cost    total_cost;
+  List *coptions = NIL;
 
   /* Estimate costs */
   estimate_costs(root, baserel, fdw_private, &startup_cost, &total_cost);
@@ -180,21 +185,48 @@ static void rbGetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreig
    * it will be propagated into the fdw_private list of the Plan node.
    */
   Path * path = (Path*)create_foreignscan_path(root, baserel,
+#if PG_VERSION_NUM >= 90600
+      NULL, /* default pathtarget */
+#endif
       baserel->rows, startup_cost, total_cost,
-      NULL,    /* no pathkeys */
-      NIL,   /* no outer rel either */
-      NULL,
-      NULL);
+      NIL,    /* no pathkeys */
+      NULL,   /* no outer rel either */
+#if PG_VERSION_NUM >= 90500
+      NULL,    /* no extra plan */
+#endif
+      coptions);
 
   add_path(baserel, path);
 }
 
-static ForeignScan * rbGetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid, ForeignPath *best_path, List *tlist, List *scan_clauses) {
+static ForeignScan * rbGetForeignPlan(
+  PlannerInfo *root,
+  RelOptInfo *baserel,
+  Oid foreigntableid,
+  ForeignPath *best_path,
+  List *tlist,
+  List *scan_clauses
+#if (PG_VERSION_NUM >= 90500)
+  , Plan *outer_plan
+#endif
+  )
+{
   Index scan_relid = baserel->relid;
   scan_clauses = extract_actual_clauses(scan_clauses, false);
 
   best_path->fdw_private = baserel->fdw_private;
-  ForeignScan * scan = make_foreignscan(tlist, scan_clauses, scan_relid, NIL, best_path->fdw_private, NULL, NULL, NULL);
+  ForeignScan * scan = make_foreignscan(
+    tlist,
+    scan_clauses,
+    scan_relid,
+    NIL,
+    best_path->fdw_private
+#if PG_VERSION_NUM >= 90500
+    , NIL
+    , NIL
+    , outer_plan
+#endif
+    );
 
   return scan;
 }
@@ -285,7 +317,7 @@ static TupleTableSlot * rbIterateForeignScan(ForeignScanState *node) {
     elog(LOG, "#each must provide an array (was %s)", RSTRING_PTR(output));
     return NULL;
   } else {
-    slot->tts_nvalid = mrb_ary_len(exec_state->mrb_state, output);
+    slot->tts_nvalid = RARRAY_LEN(output);
 
     slot->tts_isempty = false;
     slot->tts_isnull = (bool *)palloc(sizeof(bool) * slot->tts_nvalid);

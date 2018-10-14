@@ -1,0 +1,7 @@
+*.o
+*.so
+vendor/*
+*.rdb
+.git
+Dockerfile
+tests/Dockerfiles*

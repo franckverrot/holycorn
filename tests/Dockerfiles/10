@@ -1,0 +1,25 @@
+FROM ubuntu:xenial
+MAINTAINER Franck Verrot <franck@verrot.fr>
+
+RUN apt-get update -qq && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository "deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main 10"
+RUN apt-get install -y wget
+RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+RUN apt-get update -qq
+RUN apt-get install -y \
+      build-essential \
+      flex bison \
+      git \
+      libc6-dev-i386 \
+      libpq-dev \
+      postgresql-10 \
+      postgresql-server-dev-10 \
+      rake \
+      redis-server
+RUN pg_createcluster -p 5433 10 my_cluster
+
+WORKDIR /holycorn
+ADD . /holycorn
+
+RUN rake build && make install
