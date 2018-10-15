@@ -59,6 +59,9 @@ static void rbExplainForeignScan(ForeignScanState *node, ExplainState *es);
 static TupleTableSlot *rbIterateForeignScan(ForeignScanState *node);
 static void fileReScanForeignScan(ForeignScanState *node);
 static void rbEndForeignScan(ForeignScanState *node);
+#if (PG_VERSION_NUM >= 90500)
+static List *rbImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid);
+#endif
 
 static void rbGetOptions(Oid foreigntableid, HolycornPlanState *state, List **other_options);
 static void estimate_costs(PlannerInfo *root, RelOptInfo *baserel,
@@ -80,6 +83,11 @@ Datum holycorn_handler(PG_FUNCTION_ARGS) {
   fdwroutine->ExplainForeignScan = rbExplainForeignScan;
 
   fdwroutine->ReScanForeignScan  = fileReScanForeignScan;
+
+#if (PG_VERSION_NUM >= 90500)
+  /* support for IMPORT FOREIGN SCHEMA */
+  fdwroutine->ImportForeignSchema = rbImportForeignSchema;
+#endif
 
   PG_RETURN_POINTER(fdwroutine);
 }
@@ -489,3 +497,80 @@ Datum handle_column(mrb_value * mrb, TupleTableSlot *slot, int idx, mrb_value rb
     slot->tts_values[idx] = StringDatumFromChars(class_name);
   }
 }
+#if (PG_VERSION_NUM >= 90500)
+static List *rbImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
+{
+  char * wrapper_path = NULL;
+  char * wrapper_class = NULL;
+
+  mrb_value *state = mrb_open();
+
+  mrb_value params = mrb_hash_new(state);
+
+  List     *commands = NIL;
+  char     **options;
+  StringInfoData cft_stmt;
+  if (strcmp(stmt->remote_schema, "holycorn_schema") != 0) {
+    ereport(ERROR,
+        (errcode(ERRCODE_FDW_SCHEMA_NOT_FOUND),
+         errmsg("Foreign schema \"%s\" is invalid.  Use `holycorn_schema` instead.", stmt->remote_schema)
+        ));
+  }
+
+  ListCell *lc;
+  foreach(lc, stmt->options) {
+    DefElem    *def = (DefElem *) lfirst(lc);
+    char * key = def->defname;
+    char * val = defGetString(def);
+
+    if (strcmp(def->defname, "wrapper_path") == 0) {
+      if (wrapper_path)
+        ereport(DEBUG1,
+            (errcode(ERRCODE_SYNTAX_ERROR),
+             errmsg("conflicting or redundant options")));
+      wrapper_path = defGetString(def);
+    }
+    else if (strcmp(def->defname, "wrapper_class") == 0) {
+      if (wrapper_class)
+        ereport(DEBUG1,
+            (errcode(ERRCODE_SYNTAX_ERROR),
+             errmsg("conflicting or redundant options")));
+      wrapper_class = defGetString(def);
+    } else {
+      mrb_hash_set( \
+          state, \
+          params, \
+          mrb_str_new(state, key, strlen(key)), \
+          mrb_str_new(state, val, strlen(val)));
+    }
+  }
+
+  if ((wrapper_path != NULL) && (wrapper_class != NULL)) {
+    elog(ERROR, "[holycorn import schema] wrapper_path or wrapper_class are required (and not both) for defining a holycorn foreign table");
+  }
+
+  mrb_value class;
+
+  if(wrapper_path) {
+    FILE *source = fopen(wrapper_path,"r");
+    class = mrb_load_file(state, source);
+    fclose(source);
+  } else {
+    class = mrb_obj_value(mrb_class_get(state, wrapper_class));
+  }
+
+#define HASH_SET(hash, key, val) \
+  mrb_hash_set(state, hash, mrb_str_new_lit(state, key), val);
+
+  HASH_SET(params, "local_schema", mrb_str_new(state, stmt->local_schema, strlen(stmt->local_schema)));
+  HASH_SET(params, "server_name", mrb_str_new(state, quote_identifier(stmt->server_name), strlen(quote_identifier(stmt->server_name))));
+
+  mrb_value res = mrb_funcall(state, class, "import_schema", 1, params);
+
+  initStringInfo(&cft_stmt);
+  appendStringInfo(&cft_stmt, "%s", RSTRING_PTR(res));
+  commands = lappend(commands, pstrdup(cft_stmt.data));
+  pfree(cft_stmt.data);
+  return commands;
+}
+#endif

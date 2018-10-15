@@ -20,5 +20,20 @@ class HolycornRedis
       nil
     end
   end
+
+  def self.import_schema(args)
+<<-SCHEMA
+	CREATE FOREIGN TABLE #{args['local_schema']}.#{args['prefix']}redis_table
+        ( key text
+        , value text
+        )
+	SERVER #{args['server_name']}
+	OPTIONS ( wrapper_class 'HolycornRedis'
+	        , host '#{args['host']}'
+	        , port '#{args['port']}'
+	        , db '#{args['db']}'
+	);
+SCHEMA
+  end
   self
 end

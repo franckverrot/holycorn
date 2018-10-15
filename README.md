@@ -8,6 +8,8 @@ It is based on top of mruby, that provides sandboxing capabilities the regular
 Ruby VM "MRI/CRuby" does not implement.
 
 [![Join the chat at https://gitter.im/franckverrot/holycorn](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/franckverrot/holycorn?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+
 ## Built-in Wrappers
 
 Holycorn is the combination of the mruby VM, some supporting gems (some basic
@@ -17,6 +19,7 @@ foreign data wrappers.
 All the following wrappers are currently linked against Holycorn:
 
   * `Redis`, using the `mruby-redis` gem
+
 
 ## INSTALLATION
 
@@ -43,25 +46,60 @@ and installing it only requires to run
 Now connect to PostgreSQL and install the extension:
 
     λ psql
-    psql (9.4.1)
+    psql (9.5.14)
     Type "help" for help.
 
     DROP EXTENSION holycorn CASCADE;
     CREATE EXTENSION holycorn;
 
-#### Using Builtin Foreign Data Wrappers
+
+### Using Builtin Foreign Data Wrappers
+
+#### Manual Creation of Foreign Tables
 
 A set of builtin FDW are distributed with Holycorn for an easy setup. All one
 needs to provide are the options that will allow the FDW to be configured:
 
     λ psql
-    psql (9.4.1)
+    psql (9.5.14)
     Type "help" for help.
 
     CREATE SERVER holycorn_server FOREIGN DATA WRAPPER holycorn;
     CREATE FOREIGN TABLE redis_table (key text, value text)
       SERVER holycorn_server
-      OPTIONS (wrapper_class 'HolycornRedis', host '127.0.0.1', port '6379', db '0');
+      OPTIONS ( wrapper_class 'HolycornRedis'
+              , host '127.0.0.1'
+              , port '6379'
+              , db '0');
+
+
+#### Automatic Import using IMPORT FOREIGN SCHEMA
+
+Alternatively, Holycorn supports `IMPORT FOREIGN SCHEMA` and the same can be
+accomplished by using that statement instead:
+
+    λ psql
+    psql (9.5.14)
+
+    CREATE SERVER holycorn_server FOREIGN DATA WRAPPER holycorn;
+    IMPORT FOREIGN SCHEMA holycorn_schema
+    FROM SERVER holycorn_server
+    INTO holycorn_tables
+    OPTIONS ( wrapper_class 'HolycornRedis'
+            , host '127.0.0.1'
+            , port '6379'
+            , db '0'
+            , prefix 'holycorn_'
+            );
+
+Please note that custom data wrappers have to use the `holycorn_schema` schema
+as it would otherwise result in an error at runtime.
+
+Note: `IMPORT FOREIGN SCHEMA` requires us to use a custom target schema and
+Holycorn encourages users to use a `prefix` to help avoiding name collisions.
+
+
+#### Access Foreign Tables
 
 As `Holycorn` doesn't support `INSERT`s yet, let's create some manually:
 
@@ -110,6 +148,8 @@ CREATE FOREIGN TABLE holytable (some_date timestamptz) \
   OPTIONS (wrapper_path '/tmp/source.rb');
 ```
 
+(`IMPORT FOREIGN SCHEMA` is also supported here.)
+
 And the source file of the wrapper:
 
 ```ruby
@@ -126,14 +166,27 @@ class Producer
     end
     @enum.next
   end
+
+  def import_schema(args = {})
+    # Keys are:
+    #   * local_schema: the target schema
+    #   * server_name: name of the foreign data server in-use
+    #   * wrapper_class: name of the current class
+    #   * any other OPTIONS passed to IMPORT FOREIGN SCHEMA
+  end
+
   self
 end
 ```
 
+For more details about `#import_schema`, please take a look at the examples
+located in in the `builtin_wrappers` directory.
+
+
 Now you can select data out of the wrapper:
 
     λ psql
-    psql (9.4.1)
+    psql (9.5.14)
     Type "help" for help.
 
     franck=# SELECT * FROM holytable;
