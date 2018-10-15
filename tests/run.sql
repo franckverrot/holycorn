@@ -3,6 +3,6 @@ SELECT
    key
  , value
 FROM
-  redis_table
+  holycorn_tables.holycorn_redis_table
 ORDER BY
   key

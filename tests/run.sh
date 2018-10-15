@@ -10,6 +10,7 @@ redis-cli < tests/redis.commands
 
 # Setup Postgres
 exec_psql /holycorn/tests/setup.sql
+exec_psql /holycorn/tests/setups/$1.sql
 exec_psql /holycorn/tests/run.sql
 
 # Execute tests
