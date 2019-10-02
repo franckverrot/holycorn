@@ -1,0 +1,50 @@
+version: 2
+
+shared: &shared
+  working_directory: ~/repo
+  docker:
+    - image: circleci/ruby:2.6
+  steps:
+    - checkout
+
+    # run tests!
+    - run:
+        name: run tests
+        command: rake
+
+jobs:
+  "PG-9.4":
+    <<: *shared
+    environment:
+      - PG_VERSION=9.4
+  "PG-9.5":
+    <<: *shared
+    environment:
+      - PG_VERSION=9.5
+  "PG-9.6":
+    <<: *shared
+    environment:
+      - PG_VERSION=9.6
+  "PG-10":
+    <<: *shared
+    environment:
+      - PG_VERSION=10
+  "PG-11":
+    <<: *shared
+    environment:
+      - PG_VERSION=11
+  "PG-12":
+    <<: *shared
+    environment:
+      - PG_VERSION=12
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - PG-9.4
+      - PG-9.5
+      - PG-9.6
+      - PG-10
+      - PG-11
+      # Not yet released, pausing CI for now - PG-12
