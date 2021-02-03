@@ -9,6 +9,7 @@
 #include "mruby/array.h"
 #include "mruby/proc.h"
 #include "mruby/compile.h"
+#include "mruby/numeric.h"
 #include "mruby/string.h"
 #include "mruby/range.h"
 #include "mruby/hash.h"
@@ -28,7 +29,15 @@
 #include "optimizer/pathnode.h"
 #include "optimizer/planmain.h"
 #include "optimizer/restrictinfo.h"
+
+#if PG_VERSION_NUM < 120000
 #include "optimizer/var.h"
+#endif
+
+#if PG_VERSION_NUM >= 120000
+#include "optimizer/optimizer.h"
+#endif
+
 #include "utils/memutils.h"
 #include "utils/rel.h"
 #include "utils/builtins.h"
@@ -155,10 +164,10 @@ static void rbGetOptions(Oid foreigntableid, HolycornPlanState *state, List **ot
 
     if (strcmp(def->defname, "wrapper_path") == 0) { /* Extract the wrapper_path */
       state->wrapper_path = defGetString(def);
-      options = list_delete_cell(options, lc, prev);
+      options = list_delete_cell(options, lc);
     } else if (strcmp(def->defname, "wrapper_class") == 0) { /* Extract the wrapper_class */
       state->wrapper_class = defGetString(def);
-      options = list_delete_cell(options, lc, prev);
+      options = list_delete_cell(options, lc);
     }
 
     prev = lc;
@@ -327,12 +336,12 @@ static TupleTableSlot * rbIterateForeignScan(ForeignScanState *node) {
   } else {
     slot->tts_nvalid = RARRAY_LEN(output);
 
-    slot->tts_isempty = false;
+    // slot->tts_isempty = false;
     slot->tts_isnull = (bool *)palloc(sizeof(bool) * slot->tts_nvalid);
     slot->tts_values = (Datum *)palloc(sizeof(Datum) * slot->tts_nvalid);
 
     if (slot->tts_nvalid <= 0) { //TODO: the size can't be < 0 but being defensive is OK :-)
-      slot->tts_isempty = true;
+      // slot->tts_isempty = true;
     } else {
       Datum outputDatum;
       for(int i = 0; i < slot->tts_nvalid; i++) {
@@ -366,7 +375,7 @@ static TupleTableSlot * rbIterateForeignScan(ForeignScanState *node) {
             elog(ERROR,"MRB_TT_UNDEF not supported (yet?)");
             break;
           case MRB_TT_FLOAT:
-            outputDatum = Float8GetDatum(mrb_flo_to_fixnum(column));
+            outputDatum = Float8GetDatum(mrb_to_flo(exec_state->mrb_state, column));
             slot->tts_isnull[i] = false;
             slot->tts_values[i] = outputDatum;
             break;
@@ -423,9 +432,6 @@ static TupleTableSlot * rbIterateForeignScan(ForeignScanState *node) {
               break;
           case MRB_TT_EXCEPTION:
             elog(ERROR, "MRB_TT_EXCEPTION not supported (yet?)");
-            break;
-          case MRB_TT_FILE:
-            elog(ERROR, "MRB_TT_FILE not supported (yet?)");
             break;
           case MRB_TT_ENV:
             elog(ERROR, "MRB_TT_ENV not supported (yet?)");
