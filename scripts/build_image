@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-docker build -f tests/Dockerfiles/$PG_VERSION -t franckverrot/holycorn .
